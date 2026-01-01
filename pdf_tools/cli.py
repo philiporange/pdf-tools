@@ -1,33 +1,22 @@
-#!/usr/bin/env python3
 """Command-line interface for PDF manipulation and Markdown conversion.
 
 This CLI exposes all functionality from the pdf_tools package including page
 counting, page range extraction, and Markdown conversion from PDF pages.
 """
 
-import argparse
-import sys
+import click
 from pathlib import Path
 
-from pdf_tools import PDFTools
+from . import __version__
+from .pdf_tools import PDFTools
 
 
 def parse_page_range(range_str: str) -> tuple[int, int]:
-    """Parse a page range string like '1-5' or '10' into (start, end) tuple.
-
-    Args:
-        range_str: String in format 'N' or 'N-M' where N and M are page numbers
-
-    Returns:
-        Tuple of (start_page, end_page)
-
-    Raises:
-        ValueError: If range format is invalid
-    """
+    """Parse a page range string like '1-5' or '10' into (start, end) tuple."""
     if "-" in range_str:
         parts = range_str.split("-")
         if len(parts) != 2:
-            raise ValueError(f"Invalid range format: {range_str}")
+            raise click.ClickException(f"Invalid range format: {range_str}")
         start, end = int(parts[0]), int(parts[1])
         return (start, end)
     else:
@@ -35,197 +24,85 @@ def parse_page_range(range_str: str) -> tuple[int, int]:
         return (page, page)
 
 
-def cmd_count(args: argparse.Namespace) -> int:
-    """Handle the 'count' subcommand to get page count."""
+@click.group()
+@click.version_option(version=__version__)
+def cli():
+    """PDF manipulation and Markdown conversion tool."""
+    pass
+
+
+@cli.command()
+@click.argument("pdf", type=click.Path(exists=True))
+def count(pdf: str):
+    """Get the number of pages in a PDF."""
     try:
         pdf_tools = PDFTools()
-        count = pdf_tools.get_page_count(args.pdf)
-        print(count)
-        return 0
-    except FileNotFoundError as e:
-        print(f"Error: {e}", file=sys.stderr)
-        return 1
+        page_count = pdf_tools.get_page_count(pdf)
+        click.echo(page_count)
     except Exception as e:
-        print(f"Error counting pages: {e}", file=sys.stderr)
-        return 1
+        raise click.ClickException(str(e))
 
 
-def cmd_extract(args: argparse.Namespace) -> int:
-    """Handle the 'extract' subcommand to extract page ranges."""
+@cli.command()
+@click.argument("pdf", type=click.Path(exists=True))
+@click.argument("output", type=click.Path())
+@click.argument("ranges", nargs=-1, required=True)
+@click.option("-f", "--force", is_flag=True, help="Overwrite output file if it exists")
+def extract(pdf: str, output: str, ranges: tuple[str, ...], force: bool):
+    """Extract page ranges to a new PDF.
+
+    RANGES can be single pages (5) or ranges (10-20).
+    """
     try:
-        # Parse all page ranges
-        ranges = [parse_page_range(r) for r in args.ranges]
-
+        parsed_ranges = [parse_page_range(r) for r in ranges]
         pdf_tools = PDFTools()
         output_path = pdf_tools.extract_page_ranges(
-            pdf_path=args.pdf,
-            output_path=args.output,
-            ranges=ranges,
-            overwrite=args.force,
+            pdf_path=pdf,
+            output_path=output,
+            ranges=parsed_ranges,
+            overwrite=force,
         )
-        print(f"Extracted pages to: {output_path}")
-        return 0
-
-    except FileNotFoundError as e:
-        print(f"Error: {e}", file=sys.stderr)
-        return 1
+        click.echo(f"Extracted pages to: {output_path}")
     except FileExistsError as e:
-        print(f"Error: {e}", file=sys.stderr)
-        print("Use --force to overwrite existing files", file=sys.stderr)
-        return 1
-    except ValueError as e:
-        print(f"Error: {e}", file=sys.stderr)
-        return 1
+        click.echo(f"Error: {e}", err=True)
+        click.echo("Use --force to overwrite existing files", err=True)
+        raise SystemExit(1)
     except Exception as e:
-        print(f"Error extracting pages: {e}", file=sys.stderr)
-        return 1
+        raise click.ClickException(str(e))
 
 
-def cmd_markdown(args: argparse.Namespace) -> int:
-    """Handle the 'markdown' subcommand to convert PDF pages to Markdown."""
+@cli.command()
+@click.argument("pdf", type=click.Path(exists=True))
+@click.argument("ranges", nargs=-1, required=True)
+@click.option("-o", "--output", type=click.Path(), help="Output file path")
+@click.option("-f", "--force", is_flag=True, help="Overwrite output file if it exists")
+def markdown(pdf: str, ranges: tuple[str, ...], output: str, force: bool):
+    """Convert PDF page ranges to Markdown.
+
+    RANGES can be single pages (5) or ranges (10-20).
+    Output goes to stdout unless -o is specified.
+    """
     try:
-        # Parse all page ranges
-        ranges = [parse_page_range(r) for r in args.ranges]
-
+        parsed_ranges = [parse_page_range(r) for r in ranges]
         pdf_tools = PDFTools()
         markdown_content = pdf_tools.markdown_from_ranges(
-            pdf_path=args.pdf,
-            ranges=ranges,
+            pdf_path=pdf,
+            ranges=parsed_ranges,
         )
 
-        # Output to file or stdout
-        if args.output:
-            output_path = Path(args.output)
-            if output_path.exists() and not args.force:
-                print(f"Error: {output_path} already exists", file=sys.stderr)
-                print("Use --force to overwrite existing files", file=sys.stderr)
-                return 1
+        if output:
+            output_path = Path(output)
+            if output_path.exists() and not force:
+                click.echo(f"Error: {output_path} already exists", err=True)
+                click.echo("Use --force to overwrite existing files", err=True)
+                raise SystemExit(1)
             output_path.write_text(markdown_content)
-            print(f"Markdown written to: {output_path}")
+            click.echo(f"Markdown written to: {output_path}")
         else:
-            print(markdown_content)
-
-        return 0
-
-    except FileNotFoundError as e:
-        print(f"Error: {e}", file=sys.stderr)
-        return 1
-    except ValueError as e:
-        print(f"Error: {e}", file=sys.stderr)
-        return 1
+            click.echo(markdown_content)
     except Exception as e:
-        print(f"Error converting to markdown: {e}", file=sys.stderr)
-        return 1
-
-
-def main() -> int:
-    """Main entry point for the CLI."""
-    parser = argparse.ArgumentParser(
-        description="PDF manipulation and Markdown conversion tool",
-        formatter_class=argparse.RawDescriptionHelpFormatter,
-        epilog="""
-Examples:
-  # Get page count
-  %(prog)s count document.pdf
-
-  # Extract single page
-  %(prog)s extract document.pdf output.pdf 5
-
-  # Extract page range
-  %(prog)s extract document.pdf output.pdf 10-20
-
-  # Extract multiple ranges
-  %(prog)s extract document.pdf output.pdf 1-5 10-15 20
-
-  # Convert pages to Markdown (output to stdout)
-  %(prog)s markdown document.pdf 1-10
-
-  # Convert pages to Markdown file
-  %(prog)s markdown document.pdf 1-10 -o output.md
-
-  # Force overwrite existing files
-  %(prog)s extract document.pdf output.pdf 1-5 --force
-        """,
-    )
-
-    subparsers = parser.add_subparsers(dest="command", help="Available commands")
-
-    # 'count' subcommand
-    count_parser = subparsers.add_parser(
-        "count",
-        help="Get the number of pages in a PDF",
-    )
-    count_parser.add_argument(
-        "pdf",
-        help="Path to the PDF file",
-    )
-
-    # 'extract' subcommand
-    extract_parser = subparsers.add_parser(
-        "extract",
-        help="Extract page ranges to a new PDF",
-    )
-    extract_parser.add_argument(
-        "pdf",
-        help="Path to the input PDF file",
-    )
-    extract_parser.add_argument(
-        "output",
-        help="Path to the output PDF file",
-    )
-    extract_parser.add_argument(
-        "ranges",
-        nargs="+",
-        help="Page ranges to extract (e.g., '5' for page 5, '10-20' for pages 10 through 20)",
-    )
-    extract_parser.add_argument(
-        "-f", "--force",
-        action="store_true",
-        help="Overwrite output file if it exists",
-    )
-
-    # 'markdown' subcommand
-    markdown_parser = subparsers.add_parser(
-        "markdown",
-        help="Convert PDF page ranges to Markdown",
-    )
-    markdown_parser.add_argument(
-        "pdf",
-        help="Path to the input PDF file",
-    )
-    markdown_parser.add_argument(
-        "ranges",
-        nargs="+",
-        help="Page ranges to convert (e.g., '5' for page 5, '10-20' for pages 10 through 20)",
-    )
-    markdown_parser.add_argument(
-        "-o", "--output",
-        help="Output file path (if not specified, prints to stdout)",
-    )
-    markdown_parser.add_argument(
-        "-f", "--force",
-        action="store_true",
-        help="Overwrite output file if it exists",
-    )
-
-    args = parser.parse_args()
-
-    # Show help if no command specified
-    if not args.command:
-        parser.print_help()
-        return 1
-
-    # Dispatch to appropriate handler
-    if args.command == "count":
-        return cmd_count(args)
-    elif args.command == "extract":
-        return cmd_extract(args)
-    elif args.command == "markdown":
-        return cmd_markdown(args)
-    else:
-        parser.print_help()
-        return 1
+        raise click.ClickException(str(e))
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    cli()

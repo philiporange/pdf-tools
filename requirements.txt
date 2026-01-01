@@ -1,3 +1,4 @@
+click
 markitdown==0.1.3
-PyPDF2>=3.0.0
-reportlab>=4.0.0
+PyPDF2
+reportlab

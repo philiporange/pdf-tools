@@ -131,14 +131,7 @@ Converts multiple page ranges to Markdown text.
 
 ## Dependencies
 
-- PyPDF2 (>=3.0.0) - PDF reading and manipulation
-- markitdown (==0.1.3) - PDF to Markdown conversion
-- reportlab (>=4.0.0) - PDF generation support
-
-## Author
-
-Philip Orange <git@philiporange.com>
-
-## Version
-
-0.1.0
+- click - Command-line interface
+- markitdown - PDF to Markdown conversion
+- PyPDF2 - PDF reading and manipulation
+- reportlab - PDF generation support
