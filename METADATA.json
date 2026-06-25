@@ -1,25 +1,25 @@
 {
   "name": "pdf_tools",
-  "short_description": "PDF manipulation and Markdown conversion toolkit for extracting page ranges and converting PDF content to Markdown.",
-  "long_description": "pdf_tools is a Python package that provides utilities for manipulating PDF files and converting their content to Markdown format. It wraps PyPDF2 for PDF operations and MarkItDown for format conversion. The package supports extracting single pages or multiple page ranges from PDFs, counting pages, and converting selected page ranges to Markdown text. All PDF operations are kept in memory when possible to efficiently handle subsets of large files without rewriting the originals. It provides both a programmatic Python API through the PDFTools class and a command-line interface (pdftools) for quick operations.",
+  "short_description": "PDF manipulation and Markdown conversion toolkit for extracting page ranges and converting PDFs to Markdown.",
+  "long_description": "pdf_tools is a Python library and command-line tool for working with PDF files. It provides utilities to extract single pages or multiple page ranges from PDF documents, count pages, and convert PDF content to Markdown format. The toolkit combines PyPDF2 for PDF manipulation with MarkItDown for intelligent format conversion, making it easy to programmatically process PDFs or quickly extract content from the command line. It's useful for document processing pipelines, content extraction, PDF splitting, and converting PDF documents to editable Markdown.",
   "keywords": [
     "pdf",
     "markdown",
     "conversion",
     "extraction",
     "page-range",
-    "pdf-manipulation",
     "document-processing",
+    "pdf-manipulation",
     "cli-tool",
     "python-library",
-    "pypdf2",
-    "markitdown"
+    "pdf-parsing"
   ],
   "primary_language": "Python",
   "languages": [
     "Python"
   ],
   "frameworks": [
+    "Click",
     "PyPDF2",
     "MarkItDown",
     "ReportLab"
@@ -27,38 +27,28 @@
   "modules": [
     {
       "path": "pdf_tools/pdf_tools.py",
-      "description": "Core PDFTools class providing PDF page operations (counting, extraction, range slicing) and Markdown conversion from PDF pages using in-memory processing."
+      "description": "Core PDFTools class providing page counting, range extraction, and Markdown conversion from PDF pages using PyPDF2 and MarkItDown."
     },
     {
       "path": "pdf_tools/cli.py",
-      "description": "Command-line interface exposing all PDF tooling functionality through subcommands (count, extract, markdown) with argument parsing and error handling."
+      "description": "Command-line interface exposing PDF operations including count, extract, and markdown conversion commands with argument parsing."
     },
     {
       "path": "pdf_tools/__init__.py",
-      "description": "Package initializer exporting the main PDFTools class and type aliases (PdfPath, PageRange) for public API access."
+      "description": "Package initialization exposing PDFTools class and type aliases (PdfPath, PageRange) for public API."
+    },
+    {
+      "path": "pdf_tools/__main__.py",
+      "description": "Entry point for running the package as a module with python -m pdf_tools."
     },
     {
       "path": "tests/test_pdf_tools.py",
-      "description": "Test suite covering page counting, single/multiple range extraction, and Markdown conversion functionality using ReportLab-generated test PDFs."
+      "description": "Test suite for PDFTools covering page counting, range extraction, and Markdown conversion functionality."
     }
   ],
   "version": "0.1.0",
-  "author": "Philip Orange <git@philiporange.com>",
-  "license": "CC0",
-  "repository": "https://github.com/philiporange/pdf_tools",
+  "author": "Philip Orange",
+  "license": "CC0-1.0",
   "python_requires": ">=3.10",
-  "git": {
-    "is_repo": true,
-    "remote_url": "https://github.com/philiporange/pdf-tools.git",
-    "github_name": "philiporange/pdf-tools",
-    "default_branch": "master",
-    "last_commit": "2025-11-27T04:10:40+00:00"
-  },
-  "stats": {
-    "files": 10,
-    "lines_of_code": 448,
-    "size_bytes": 30931
-  },
-  "generated_at": "2025-12-06T23:10:10.107385",
-  "generator_version": "1.0.0"
+  "repository_url": "https://github.com/philiporange/pdf_tools"
 }
